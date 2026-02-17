@@ -1128,7 +1128,7 @@
                     </button>
                 </div>
                 <!-- 导入和导出按钮 -->
-                <button class="right-icon-btn" id="exportData" title="导出数据, 用于升级到新版本.">
+                <button class="right-icon-btn" id="exportData" title="导出数据, 将数据导出为JSON文件, 用于升级到新版本.">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -1136,7 +1136,7 @@
                         <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
                 </button>
-                <button class="right-icon-btn" id="importData" title="导入数据, 可以将老版本的数据导入新版本">
+                <button class="right-icon-btn" id="importData" title="导入数据, 可以将老版本的数据导入新版本.">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -1390,6 +1390,8 @@
         async function fetchData() {
             try {
                 /*--data-start--*/
+                tree = [{ "id": "n0", "title": "第一章", "expanded": false, "children": [] }];
+                contents = { "n0": "<p>混沌未分天地乱，茫茫渺渺无人见。自从盘古破鸿蒙，开辟从兹清浊辨。</p>" };
 
                 /*--data-end--*/
                 // const [treeRes, contentsRes] = await Promise.all([
@@ -1399,10 +1401,6 @@
                 // tree = await treeRes.json();
                 // contents = await contentsRes.json();
 
-                if (tree.length === 0) {
-                    tree = [{ "id": "n0", "title": "第一章", "expanded": false, "children": [] }];
-                    contents = { "n0": "<p>混沌未分天地乱，茫茫渺渺无人见。自从盘古破鸿蒙，开辟从兹清浊辨。</p>" };
-                }
                 renderTree();
                 // Auto-select first leaf node
                 const firstLeaf = findFirstLeaf(tree);
