@@ -528,7 +528,8 @@
         }
 
         .tool-btn {
-            width: 30px;
+            /* width: 30px; */
+            padding: 0px 5px;
             height: 30px;
             border: none;
             background: none;
@@ -1058,6 +1059,64 @@
             box-shadow: var(--shadow);
             margin: 8px 0;
         }
+
+        .color-picker {
+            position: absolute;
+            display: none;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 8px;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            gap: 4px;
+            flex-wrap: wrap;
+            width: 120px;
+        }
+
+        .color-option {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .color-option:hover {
+            border-color: var(--accent);
+        }
+
+        .font-size-picker {
+            position: absolute;
+            display: none;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 8px;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            gap: 4px;
+            flex-wrap: wrap;
+            width: 100px;
+        }
+
+        .font-size-option {
+            width: 100%;
+            padding: 6px;
+            border: none;
+            background: none;
+            color: var(--text);
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .font-size-option:hover {
+            background: var(--bg-hover);
+        }
     </style>
 </head>
 
@@ -1153,6 +1212,26 @@
                         </path>
                     </svg>
                 </button>
+                <!-- 设置弹出层 -->
+                <div class="settings-modal" id="settingsModal">
+                    <div class="modal-overlay" id="modalOverlay"></div>
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>设置</h2>
+                            <button class="close-btn" id="closeModal">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="docTitle">文档标题</label>
+                                <input type="text" id="docTitle" class="form-control" placeholder="请输入文档标题">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-primary" id="saveSettings">保存</button>
+                            <button class="btn btn-secondary" id="cancelSettings">取消</button>
+                        </div>
+                    </div>
+                </div>
                 <button class="right-icon-btn" id="themeToggle" title="切换主题">
                     <svg id="moonIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round">
@@ -1179,16 +1258,20 @@
             <!-- Toolbar -->
             <div class="toolbar" id="toolbar">
                 <div class="toolbar-group">
-                    <button class="tool-btn" data-cmd="undo" title="撤销"><svg viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <button class="tool-btn" data-cmd="undo" title="撤销">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
                             <polyline points="1 4 1 10 7 10" />
                             <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-                        </svg></button>
-                    <button class="tool-btn" data-cmd="redo" title="重做"><svg viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        </svg>
+                    </button>
+                    <button class="tool-btn" data-cmd="redo" title="重做">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
                             <polyline points="23 4 23 10 17 10" />
                             <path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10" />
-                        </svg></button>
+                        </svg>
+                    </button>
                 </div>
                 <div class="toolbar-group">
                     <button class="tool-btn" data-cmd="formatBlock" data-val="H1" title="一级标题"
@@ -1197,31 +1280,46 @@
                         style="font-size:13px;font-weight:700">H2</button>
                     <button class="tool-btn" data-cmd="formatBlock" data-val="H3" title="三级标题"
                         style="font-size:12px;font-weight:600">H3</button>
-                    <button class="tool-btn" data-cmd="formatBlock" data-val="P" title="正文段落">P</button>
+                    <button class="tool-btn" data-cmd="formatBlock" data-val="P" title="正文段落">段落</button>
                 </div>
                 <div class="toolbar-group">
-                    <button class="tool-btn" data-cmd="bold" title="加粗"><svg viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                            <path d="M6 4h8a4 4 0 0 1 0 8H6z" />
-                            <path d="M6 12h9a4 4 0 0 1 0 8H6z" />
-                        </svg></button>
-                    <button class="tool-btn" data-cmd="italic" title="斜体"><svg viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <line x1="19" y1="4" x2="10" y2="4" />
-                            <line x1="14" y1="20" x2="5" y2="20" />
-                            <line x1="15" y1="4" x2="9" y2="20" />
-                        </svg></button>
-                    <button class="tool-btn" data-cmd="underline" title="下划线"><svg viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <path d="M6 3v7a6 6 0 0 0 12 0V3" />
-                            <line x1="4" y1="21" x2="20" y2="21" />
-                        </svg></button>
-                    <button class="tool-btn" data-cmd="strikeThrough" title="删除线"><svg viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <path d="M16 4c-.5-1.5-2.2-3-5-3C8 1 5.5 3 5.5 5.5c0 2.5 2 3.5 5.5 5" />
-                            <line x1="2" y1="12" x2="22" y2="12" />
-                            <path d="M17.5 15.5c0 2.5-2.5 4.5-5.5 4.5s-5.5-2-5.5-4.5" />
-                        </svg></button>
+                    <button class="tool-btn" data-cmd="bold" title="加粗">
+                        加粗
+                    </button>
+                    <button class="tool-btn" data-cmd="italic" title="斜体">
+                        斜体
+                    </button>
+                    <button class="tool-btn" data-cmd="underline" title="下划线">
+                        下划线
+                    </button>
+                    <button class="tool-btn" data-cmd="strikeThrough" title="删除线">
+                        删除线
+                    </button>
+                    <button class="tool-btn" data-cmd="fontSize" title="文字大小">
+                        文字大小
+                    </button>
+                    <!-- 字体大小选择面板 -->
+                    <div class="font-size-picker" id="fontSizePicker">
+                        <button class="font-size-option" data-size="1">小</button>
+                        <button class="font-size-option" data-size="3">中</button>
+                        <button class="font-size-option" data-size="5">大</button>
+                        <button class="font-size-option" data-size="7">超大</button>
+                    </div>
+                    <button class="tool-btn" data-cmd="foreColor" title="文字颜色">
+                        文字颜色
+                    </button>
+                    <!-- 颜色选择面板 -->
+                    <div class="color-picker" id="colorPicker">
+                        <button class="color-option" data-color="#000000" style="background-color: #000000;"></button>
+                        <button class="color-option" data-color="#FF0000" style="background-color: #FF0000;"></button>
+                        <button class="color-option" data-color="#00FF00" style="background-color: #00FF00;"></button>
+                        <button class="color-option" data-color="#0000FF" style="background-color: #0000FF;"></button>
+                        <button class="color-option" data-color="#FFFF00" style="background-color: #FFFF00;"></button>
+                        <button class="color-option" data-color="#00FFFF" style="background-color: #00FFFF;"></button>
+                        <button class="color-option" data-color="#FF00FF" style="background-color: #FF00FF;"></button>
+                        <button class="color-option" data-color="#FFFFFF"
+                            style="background-color: #FFFFFF; border: 1px solid #ccc;"></button>
+                    </div>
                 </div>
                 <div class="toolbar-group">
                     <button class="tool-btn" data-cmd="insertTable" title="插入表格">
@@ -1234,6 +1332,7 @@
                             <line x1="15" y1="3" x2="15" y2="21" />
                         </svg>
                     </button>
+
                 </div>
                 <div class="toolbar-group">
                     <button class="tool-btn" data-cmd="insertImage" title="插入图片">
@@ -1246,55 +1345,66 @@
                     </button>
                 </div>
                 <div class="toolbar-group">
-                    <button class="tool-btn" data-cmd="insertUnorderedList" title="无序列表"><svg viewBox="0 0 24 24"
-                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <button class="tool-btn" data-cmd="insertUnorderedList" title="无序列表">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
                             <line x1="8" y1="6" x2="21" y2="6" />
                             <line x1="8" y1="12" x2="21" y2="12" />
                             <line x1="8" y1="18" x2="21" y2="18" />
                             <circle cx="4" cy="6" r="1" fill="currentColor" />
                             <circle cx="4" cy="12" r="1" fill="currentColor" />
                             <circle cx="4" cy="18" r="1" fill="currentColor" />
-                        </svg></button>
-                    <button class="tool-btn" data-cmd="insertOrderedList" title="有序列表"><svg viewBox="0 0 24 24"
-                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        </svg>
+                    </button>
+                    <button class="tool-btn" data-cmd="insertOrderedList" title="有序列表">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
                             <line x1="10" y1="6" x2="21" y2="6" />
                             <line x1="10" y1="12" x2="21" y2="12" />
-                            <line x1="10" y1="18" x2="21" y2="18" /><text x="2" y="8" fill="currentColor" font-size="8"
-                                font-weight="600" stroke="none">1</text><text x="2" y="14" fill="currentColor"
-                                font-size="8" font-weight="600" stroke="none">2</text><text x="2" y="20"
-                                fill="currentColor" font-size="8" font-weight="600" stroke="none">3</text>
-                        </svg></button>
+                            <line x1="10" y1="18" x2="21" y2="18" />
+                            <text x="2" y="8" fill="currentColor" font-size="8" font-weight="600" stroke="none">1</text>
+                            <text x="2" y="14" fill="currentColor" font-size="8" font-weight="600"
+                                stroke="none">2</text>
+                            <text x="2" y="20" fill="currentColor" font-size="8" font-weight="600"
+                                stroke="none">3</text>
+                        </svg>
+                    </button>
                 </div>
-
                 <div class="toolbar-group">
-                    <button class="tool-btn" data-cmd="formatBlock" data-val="BLOCKQUOTE" title="引用"><svg
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    <button class="tool-btn" data-cmd="formatBlock" data-val="BLOCKQUOTE" title="引用">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                             stroke-linecap="round">
                             <path
                                 d="M3 21c3 0 7-1 7-8V5c0-1.25-.76-2.017-2-2H5c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z" />
                             <path
                                 d="M15 21c3 0 7-1 7-8V5c0-1.25-.76-2.017-2-2h-3c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z" />
-                        </svg></button>
-                    <button class="tool-btn" data-cmd="insertCode" title="代码"><svg viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        </svg>
+                    </button>
+                    <button class="tool-btn" data-cmd="insertCode" title="代码">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
                             <polyline points="16 18 22 12 16 6" />
                             <polyline points="8 6 2 12 8 18" />
-                        </svg></button>
-                    <button class="tool-btn" data-cmd="insertHorizontalRule" title="分割线"><svg viewBox="0 0 24 24"
-                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        </svg>
+                    </button>
+                    <button class="tool-btn" data-cmd="insertHorizontalRule" title="分割线">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
                             <line x1="2" y1="12" x2="22" y2="12" />
-                        </svg></button>
+                        </svg>
+                    </button>
                 </div>
                 <div class="toolbar-group">
                     <button class="tool-btn" data-cmd="createLink" title="插入链接"><svg viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round">
                             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                        </svg></button>
+                        </svg>
+                    </button>
                 </div>
             </div>
             <!-- Editor Content -->
-            <div class="editor-container">
+            <div class="editor-container" id="editorContainer">
                 <!-- <div class="editor-title" id="editorTitle">请选择一个章节</div> -->
                 <div id="editor" contenteditable="true"></div>
                 <div id="preview"></div>
@@ -1331,26 +1441,7 @@
         </button>
     </div>
 
-    <!-- 设置弹出层 -->
-    <div class="settings-modal" id="settingsModal">
-        <div class="modal-overlay" id="modalOverlay"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>设置</h2>
-                <button class="close-btn" id="closeModal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="docTitle">文档标题</label>
-                    <input type="text" id="docTitle" class="form-control" placeholder="请输入文档标题">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" id="saveSettings">保存</button>
-                <button class="btn btn-secondary" id="cancelSettings">取消</button>
-            </div>
-        </div>
-    </div>
+
 
     <!-- 提示框 -->
     <div class="toast" id="messageToast">
@@ -1776,6 +1867,7 @@
                 } else {
                     document.getElementById('preview').innerHTML = html;
                 }
+                editorContainer.scrollTop = 0;
             }
         }
 
@@ -1961,9 +2053,49 @@
                 document.body.appendChild(fileInput);
                 fileInput.click();
                 document.body.removeChild(fileInput);
+            } else if (cmd === 'foreColor') {
+                e.stopPropagation();
+                const rect = e.target.getBoundingClientRect();
+                colorPicker.style.top = `${rect.bottom + 5}px`;
+                colorPicker.style.left = `${rect.left}px`;
+                colorPicker.style.display = colorPicker.style.display === 'block' ? 'none' : 'block';
+            } else if (cmd === 'fontSize') {
+                e.stopPropagation();
+                const rect = e.target.getBoundingClientRect();
+                fontSizePicker.style.top = `${rect.bottom + 5}px`;
+                fontSizePicker.style.left = `${rect.left}px`;
+                fontSizePicker.style.display = fontSizePicker.style.display === 'block' ? 'none' : 'block';
             } else {
                 document.execCommand(cmd, false, val);
             }
+            updateToolbarState();
+            document.getElementById('editor').focus();
+        });
+
+        // 点击页面其他地方关闭面板
+        document.addEventListener('click', () => {
+            colorPicker.style.display = 'none';
+            fontSizePicker.style.display = 'none';
+        });
+
+        // 应用颜色
+        colorPicker.addEventListener('click', (e) => {
+            const option = e.target.closest('.color-option');
+            if (!option) return;
+            const color = option.dataset.color;
+            document.execCommand('foreColor', false, color);
+            colorPicker.style.display = 'none';
+            updateToolbarState();
+            document.getElementById('editor').focus();
+        });
+
+        // 应用字体大小
+        fontSizePicker.addEventListener('click', (e) => {
+            const option = e.target.closest('.font-size-option');
+            if (!option) return;
+            const size = option.dataset.size;
+            document.execCommand('fontSize', false, size);
+            fontSizePicker.style.display = 'none';
             updateToolbarState();
             document.getElementById('editor').focus();
         });
@@ -2162,8 +2294,8 @@
                             uid = data.uid || 0;
                             tree = data.tree || [];
                             contents = data.contents || {};
-
                             renderTree();
+                            selectedId = null;
                             if (tree.length > 0) {
                                 const firstLeaf = findFirstLeaf(tree);
                                 if (firstLeaf) selectNode(firstLeaf.id);
