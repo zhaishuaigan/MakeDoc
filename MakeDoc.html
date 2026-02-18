@@ -2009,6 +2009,23 @@
 
         document.getElementById('editor').addEventListener('mouseup', updateToolbarState);
         document.getElementById('editor').addEventListener('keyup', updateToolbarState);
+        editor.addEventListener('paste', function (event) {
+            const items = (event.clipboardData || window.clipboardData).items;
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.type.indexOf('image') !== -1) {
+                    event.preventDefault();
+                    const blob = item.getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const base64Image = e.target.result;
+                        var img = `<img src="${base64Image}" style="max-width:100%;">`
+                        document.execCommand('insertHTML', false, img);
+                    };
+                    reader.readAsDataURL(blob);
+                }
+            }
+        });
 
         // ===== THEME TOGGLE =====
         document.getElementById('themeToggle').addEventListener('click', () => {
