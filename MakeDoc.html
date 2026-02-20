@@ -71,6 +71,11 @@
             transition: background .2s, color .2s;
         }
 
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
         /* ===== Sidebar ===== */
         .sidebar {
             width: 280px;
@@ -102,7 +107,7 @@
 
         /* Search */
         .search-wrap {
-            padding: 8px 10px;
+            padding: 8px 10px 9px;
             border-bottom: 1px solid var(--border);
         }
 
@@ -359,6 +364,16 @@
             display: block;
         }
 
+        .copyright {
+            flex: none;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            padding: 5px 0;
+            text-align: center;
+            line-height: 24px;
+        }
+
         /* Icon Button */
         .icon-btn {
             width: 24px;
@@ -382,6 +397,18 @@
         .icon-btn svg {
             width: 16px;
             height: 16px;
+        }
+
+        /* 拖拽手柄样式 */
+        .resize-handle {
+            width: 10px;
+            height: 100vh;
+            cursor: col-resize;
+            position: relative;
+            margin-left: -5px;
+            margin-right: -5px;
+            /* 居中对齐到边框 */
+            z-index: 10;
         }
 
         /* ===== Main Area ===== */
@@ -506,7 +533,7 @@
             display: flex;
             flex-wrap: wrap;
             gap: 2px;
-            padding: 6px 16px;
+            padding: 10px 16px;
             background: var(--toolbar-bg);
             border-bottom: 1px solid var(--border);
             transition: background .2s, border-color .2s;
@@ -1150,10 +1177,11 @@
             </div>
             <div class="search-count" id="searchCount"></div>
         </div>
-        <div class="sidebar-tree" id="treeContainer"></div>
         <div class="no-results" id="noResults">未找到匹配的章节</div>
+        <div class="sidebar-tree" id="treeContainer"></div>
+        <div class="copyright">此文档使用 <a href="https://make-doc.ngapp.net" target="_blank">MakeDoc</a> 构建</div>
     </aside>
-
+    <div class="resize-handle" id="resizeHandle"></div>
     <!-- Main -->
     <div class="main">
         <div class="topbar">
@@ -2314,6 +2342,38 @@
             fileInput.click();
             document.body.removeChild(fileInput);
         });
+
+        (() => {
+            let isDragging = false;
+
+            // 鼠标按下事件：开始拖拽
+            resizeHandle.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none'; // 禁止文本选中
+            });
+
+            // 鼠标移动事件：调整宽度
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const newWidth = e.clientX; // 鼠标当前位置作为新宽度
+                const minWidth = 200;       // 最小宽度
+                const maxWidth = window.innerWidth * 0.8; // 最大宽度为窗口宽度的 80%
+
+                // 限制宽度范围
+                if (newWidth >= minWidth && newWidth <= maxWidth) {
+                    sidebar.style.width = `${newWidth}px`;
+                }
+            });
+
+            // 鼠标释放事件：结束拖拽
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            });
+        })();
 
         // ===== INIT =====
         fetchData();
