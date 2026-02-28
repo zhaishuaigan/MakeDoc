@@ -1449,6 +1449,90 @@
     </div>
 
     <script>
+        // 封装 IndexedDB 操作：修复返回 IDBRequest 的问题
+        class FileHandleStore {
+            constructor() {
+                this.dbName = "PersistentFileHandles";
+                this.storeName = "handles";
+                this.db = null;
+            }
+
+            // 初始化 IndexedDB 连接（Promise 封装）
+            async init() {
+                if (this.db) return this.db;
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, 1);
+
+                    // 数据库首次创建/版本升级时初始化存储表
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(this.storeName)) {
+                            db.createObjectStore(this.storeName, { keyPath: "id" });
+                        }
+                    };
+
+                    request.onsuccess = (e) => {
+                        this.db = e.target.result;
+                        resolve(this.db);
+                    };
+
+                    request.onerror = (e) => {
+                        reject(new Error("IndexedDB 初始化失败：" + e.target.error));
+                    };
+                });
+            }
+
+            // 保存文件句柄到 IndexedDB（修复后：返回 Promise，无 IDBRequest）
+            async saveHandle(id, handle) {
+                await this.init();
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction(this.storeName, "readwrite");
+                    const store = tx.objectStore(this.storeName);
+                    const request = store.put({ id, handle });
+
+                    request.onsuccess = () => resolve("句柄保存成功");
+                    request.onerror = (e) => reject(new Error("保存失败：" + e.target.error));
+                    // 确保事务完成后再返回
+                    tx.oncomplete = () => resolve("句柄保存成功（事务完成）");
+                    tx.onerror = (e) => reject(new Error("事务失败：" + e.target.error));
+                });
+            }
+
+            // 【核心修复】从 IndexedDB 读取文件句柄（返回实际句柄，而非 IDBRequest）
+            async getHandle(id) {
+                await this.init();
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction(this.storeName, "readonly");
+                    const store = tx.objectStore(this.storeName);
+                    const request = store.get(id);
+
+                    request.onsuccess = (e) => {
+                        // e.target.result 是存储的 {id, handle} 对象，需提取 handle 字段
+                        const result = e.target.result;
+                        resolve(result ? result.handle : null); // 无数据时返回 null
+                    };
+                    request.onerror = (e) => reject(new Error("读取失败：" + e.target.error));
+                });
+            }
+
+            // 删除指定文件句柄（同样封装为 Promise）
+            async deleteHandle(id) {
+                await this.init();
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction(this.storeName, "readwrite");
+                    const store = tx.objectStore(this.storeName);
+                    const request = store.delete(id);
+
+                    request.onsuccess = () => resolve("句柄删除成功");
+                    request.onerror = (e) => reject(new Error("删除失败：" + e.target.error));
+                    tx.oncomplete = () => resolve("句柄删除成功（事务完成）");
+                    tx.onerror = (e) => reject(new Error("事务失败：" + e.target.error));
+                });
+            }
+        }
+
+        var fileStore = new FileHandleStore();
+
         // ===== DATA =====
         let uid = 0;
         function newId() {
@@ -2196,6 +2280,16 @@
                     }
 
                     if (file === null) {
+                        var name = location.href.split('/').pop();
+                        name = decodeURIComponent(name);
+                        if (name) {
+                            console.log('Using file handle from store:', name);
+                            file = await fileStore.getHandle(name);
+                            console.log('Using file handle from store:', file);
+                        }
+                    }
+
+                    if (file === null) {
                         file = await window.showSaveFilePicker({
                             suggestedName: 'document.html',
                             types: [{
@@ -2203,6 +2297,14 @@
                                 accept: { 'text/html': ['.html'] },
                             }],
                         });
+                        if (!file) {
+                            return;
+                        }
+                        if (file.persist) {
+                            await file.persist();
+                        }
+                        await fileStore.saveHandle(file.name, file);
+                        console.log('File saved:', file);
                     }
 
                     var newData = `
