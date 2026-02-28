@@ -1214,6 +1214,14 @@
                         预览
                     </button>
                 </div>
+                <button class="right-icon-btn" id="saveBtn" title="保存">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                </button>
                 <!-- 导入和导出按钮 -->
                 <button class="right-icon-btn" id="exportData" title="导出数据, 将数据导出为JSON文件, 用于升级到新版本.">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -1439,8 +1447,6 @@
         </button>
     </div>
 
-
-
     <!-- 提示框 -->
     <div class="toast" id="messageToast">
         <div class="toast-content">
@@ -1449,7 +1455,7 @@
     </div>
 
     <script>
-        // 封装 IndexedDB 操作：修复返回 IDBRequest 的问题
+        // 缓存文件句柄
         class FileHandleStore {
             constructor() {
                 this.dbName = "PersistentFileHandles";
@@ -1533,20 +1539,19 @@
 
         var fileStore = new FileHandleStore();
 
-        // ===== DATA =====
-        let uid = 0;
+        var uid = 0;
         function newId() {
             return 'n' + (++uid);
         }
 
-        let tree = [];
-        let contents = {};
-        let selectedId = null;
-        let currentMode = 'edit'; // 'edit' | 'preview'
-        let searchKeyword = '';
+        var tree = [];
+        var contents = {};
+        var selectedId = null;
+        var currentMode = 'edit'; // 'edit' | 'preview'
+        var searchKeyword = '';
 
         /* ===== DRAG STATE ===== */
-        let dragState = {
+        var dragState = {
             draggedId: null,
             dropTarget: null,
         };
@@ -2267,61 +2272,73 @@
         // ===== ADD ROOT =====
         document.getElementById('addRootBtn').addEventListener('click', addRootChapter);
 
-        // ===== KEYBOARD SHORTCUT =====
-        (() => {
-            // 保存
-            var sourceCode = document.documentElement.outerHTML;
-            var file = null;
-            document.addEventListener('keydown', async (e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                    e.preventDefault();
-                    if (currentMode !== 'edit') {
-                        return;
-                    }
-
-                    if (file === null) {
-                        var name = location.href.split('/').pop();
-                        name = decodeURIComponent(name);
-                        if (name) {
-                            console.log('Using file handle from store:', name);
-                            file = await fileStore.getHandle(name);
-                            console.log('Using file handle from store:', file);
-                        }
-                    }
-
-                    if (file === null) {
-                        file = await window.showSaveFilePicker({
-                            suggestedName: 'document.html',
-                            types: [{
-                                description: 'HTML Files',
-                                accept: { 'text/html': ['.html'] },
-                            }],
-                        });
-                        if (!file) {
-                            return;
-                        }
-                        if (file.persist) {
-                            await file.persist();
-                        }
-                        await fileStore.saveHandle(file.name, file);
-                        console.log('File saved:', file);
-                    }
-
-                    var newData = `
-                        /*--data-start--*/
-                        document.title = "${document.title}";
-                        uid = ${uid};
-                        tree = ${JSON.stringify(tree)};
-                        contents = ${JSON.stringify(contents)};
-                        /*--data-end--*/`;
-                    var newSourceCode = sourceCode.replace(/\/\*--data-start--\*\/.*?\/\*--data-end--\*\//s, newData);
-                    var fileStream = await file.createWritable();
-                    await fileStream.write(newSourceCode);
-                    await fileStream.close();
-                    showToast('保存成功');
+        // ===== SAVE DOCUMENT =====
+        var sourceCode = document.documentElement.outerHTML;
+        var file = null;
+        var saveing = false;
+        async function saveDocument() {
+            if (file === null) {
+                var name = location.href.split('/').pop();
+                name = decodeURIComponent(name);
+                if (name) {
+                    file = await fileStore.getHandle(name);
                 }
-            });
-        })();
+            }
+
+            if (file === null) {
+                file = await window.showSaveFilePicker({
+                    suggestedName: document.title + '.html',
+                    types: [{
+                        description: 'HTML Files',
+                        accept: { 'text/html': ['.html'] },
+                    }],
+                });
+                if (!file) {
+                    return;
+                }
+                if (file.persist) {
+                    await file.persist();
+                }
+                await fileStore.saveHandle(file.name, file);
+            }
+
+            if (saveing) {
+                console.warn('正在保存，请勿重复点击');
+                return;
+            }
+            saveing = true;
+
+            var newData = `
+<scr`+ `ipt>
+document.title = ${JSON.stringify(document.title)};
+uid = ${uid};
+tree = ${JSON.stringify(tree, null, 4)};
+contents = ${JSON.stringify(contents, null, 4)};
+renderTree();
+const firstLeaf = findFirstLeaf(tree);
+if (firstLeaf) selectNode(firstLeaf.id);
+</scr`+ `ipt>
+`;
+            var newSourceCode = '<!DOCTYPE html>\n' + sourceCode + newData;
+            var fileStream = await file.createWritable();
+            await fileStream.write(newSourceCode);
+            await fileStream.close();
+            showToast('保存成功');
+            saveing = false;
+        }
+
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            saveDocument();
+        });
+        document.addEventListener('keydown', async (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                if (currentMode !== 'edit') {
+                    return;
+                }
+                saveDocument();
+            }
+        });
 
         // 显示提示框
         function showToast(content, duration = 3000) {
@@ -2332,13 +2349,10 @@
             }, duration);
         }
 
-
         // 打开设置弹窗
         setting.addEventListener('click', function () {
-            console.log('Opening settings modal');
             settingsModal.style.display = 'flex';
             docTitle.value = document.title;
-            console.log(docTitle.value);
         });
 
         closeModal.addEventListener('click', function () {
@@ -2354,7 +2368,7 @@
 
 
         // 导出数据按钮事件监听
-        document.getElementById('exportData').addEventListener('click', () => {
+        document.getElementById('exportData').addEventListener('click', async () => {
             const data = {
                 title: document.title,
                 uid: uid,
@@ -2362,17 +2376,20 @@
                 contents: contents
             };
 
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = document.title + '.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
+            var file = await window.showSaveFilePicker({
+                suggestedName: document.title + '.json',
+                types: [{
+                    description: 'JSON Files',
+                    accept: { 'application/json': ['.json'] },
+                }],
+            });
+            if (!file) {
+                return;
+            }
+            await file.createWritable().then(async (fileStream) => {
+                await fileStream.write(JSON.stringify(data, null, 4));
+                await fileStream.close();
+            });
             showToast('数据已导出');
         });
 
@@ -2446,11 +2463,25 @@
                 document.body.style.userSelect = '';
             });
         })();
-
-        // ===== INIT =====
-        fetchData();
-
     </script>
 </body>
 
 </html>
+
+<script>
+    uid = 0;
+    tree = [
+        {
+            "id": "n0",
+            "title": "第一章",
+            "expanded": false,
+            "children": []
+        }
+    ];
+    contents = {
+        "n0": "<p>混沌未分天地乱，茫茫渺渺无人见。自从盘古破鸿蒙，开辟从兹清浊辨。</p>"
+    };
+    renderTree();
+    const firstLeaf = findFirstLeaf(tree);
+    if (firstLeaf) selectNode(firstLeaf.id);
+</script>
