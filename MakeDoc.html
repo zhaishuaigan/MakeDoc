@@ -1261,6 +1261,10 @@
                                 <label for="docTitle">文档标题</label>
                                 <input type="text" id="docTitle" class="form-control" placeholder="请输入文档标题">
                             </div>
+                            <div class="form-group">
+                                <label for="docTitle">文档ID</label>
+                                <input type="text" id="docUUid" class="form-control" placeholder="请输入文档ID">
+                            </div>
                         </div>
                         <div class="modal-footer">
                             <button class="btn btn-primary" id="saveSettings">保存</button>
@@ -1463,13 +1467,11 @@
                 this.db = null;
             }
 
-            // 初始化 IndexedDB 连接（Promise 封装）
+            // 初始化 IndexedDB 
             async init() {
                 if (this.db) return this.db;
                 return new Promise((resolve, reject) => {
                     const request = indexedDB.open(this.dbName, 1);
-
-                    // 数据库首次创建/版本升级时初始化存储表
                     request.onupgradeneeded = (e) => {
                         const db = e.target.result;
                         if (!db.objectStoreNames.contains(this.storeName)) {
@@ -1488,23 +1490,21 @@
                 });
             }
 
-            // 保存文件句柄到 IndexedDB（修复后：返回 Promise，无 IDBRequest）
+            // 保存文件句柄到 IndexedDB
             async saveHandle(id, handle) {
                 await this.init();
                 return new Promise((resolve, reject) => {
                     const tx = this.db.transaction(this.storeName, "readwrite");
                     const store = tx.objectStore(this.storeName);
                     const request = store.put({ id, handle });
-
                     request.onsuccess = () => resolve("句柄保存成功");
                     request.onerror = (e) => reject(new Error("保存失败：" + e.target.error));
-                    // 确保事务完成后再返回
                     tx.oncomplete = () => resolve("句柄保存成功（事务完成）");
                     tx.onerror = (e) => reject(new Error("事务失败：" + e.target.error));
                 });
             }
 
-            // 【核心修复】从 IndexedDB 读取文件句柄（返回实际句柄，而非 IDBRequest）
+            // 从 IndexedDB 读取文件句柄 
             async getHandle(id) {
                 await this.init();
                 return new Promise((resolve, reject) => {
@@ -1513,7 +1513,6 @@
                     const request = store.get(id);
 
                     request.onsuccess = (e) => {
-                        // e.target.result 是存储的 {id, handle} 对象，需提取 handle 字段
                         const result = e.target.result;
                         resolve(result ? result.handle : null); // 无数据时返回 null
                     };
@@ -1521,7 +1520,7 @@
                 });
             }
 
-            // 删除指定文件句柄（同样封装为 Promise）
+            // 删除指定文件句柄
             async deleteHandle(id) {
                 await this.init();
                 return new Promise((resolve, reject) => {
@@ -1537,8 +1536,16 @@
             }
         }
 
-        var fileStore = new FileHandleStore();
+        // 生成一个随机字符串作为文档ID，避免同名文档冲突
+        function makeUUID() {
+            return 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'.replace(/x/g, function (c) {
+                return (Math.random() * 16 | 0).toString(16);
+            });
 
+        }
+
+        var fileStore = new FileHandleStore();
+        var uuid = makeUUID();
         var uid = 0;
         function newId() {
             return 'n' + (++uid);
@@ -2278,11 +2285,7 @@
         var saveing = false;
         async function saveDocument() {
             if (file === null) {
-                var name = location.href.split('/').pop();
-                name = decodeURIComponent(name);
-                if (name) {
-                    file = await fileStore.getHandle(name);
-                }
+                file = await fileStore.getHandle(uuid);
             }
 
             if (file === null) {
@@ -2299,7 +2302,7 @@
                 if (file.persist) {
                     await file.persist();
                 }
-                await fileStore.saveHandle(file.name, file);
+                await fileStore.saveHandle(uuid, file);
             }
 
             if (saveing) {
@@ -2311,6 +2314,7 @@
             var newData = `
 <scr`+ `ipt>
 document.title = ${JSON.stringify(document.title)};
+uuid = ${JSON.stringify(uuid)};
 uid = ${uid};
 tree = ${JSON.stringify(tree, null, 4)};
 contents = ${JSON.stringify(contents, null, 4)};
@@ -2353,6 +2357,7 @@ if (firstLeaf) selectNode(firstLeaf.id);
         setting.addEventListener('click', function () {
             settingsModal.style.display = 'flex';
             docTitle.value = document.title;
+            docUUid.value = uuid;
         });
 
         closeModal.addEventListener('click', function () {
@@ -2363,6 +2368,7 @@ if (firstLeaf) selectNode(firstLeaf.id);
         });
         saveSettings.addEventListener('click', function () {
             document.title = docTitle.value;
+            uuid = docUUid.value;
             settingsModal.style.display = 'none';
         });
 
